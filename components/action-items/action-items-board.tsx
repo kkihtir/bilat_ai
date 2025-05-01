@@ -1,20 +1,44 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect, useCallback } from "react"
-import Link from "next/link"
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Search,
   Plus,
@@ -29,65 +53,84 @@ import {
   Trash2,
   LayoutGrid,
   List,
-} from "lucide-react"
-import { mockCountries } from "@/lib/mock-data"
-import { mockProfiles } from "@/lib/mock-data"
-import { mockActionItems, ActionItem } from "@/lib/mock-action-items"
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+} from "lucide-react";
+import { mockCountries } from "@/lib/mock-data";
+import { mockProfiles } from "@/lib/mock-data";
+import { mockActionItems, ActionItem } from "@/lib/mock-action-items";
 
 // Define the column type for the Kanban board
 interface Column {
-  id: string
-  title: string
-  items: ActionItem[]
+  id: string;
+  title: string;
+  items: ActionItem[];
 }
 
 export default function ActionItemsBoard() {
-  const [viewMode, setViewMode] = useState<"kanban" | "table">("table")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [countryFilter, setCountryFilter] = useState<string>("all")
-  const [themeFilter, setThemeFilter] = useState<string>("all")
-  const [isAddingItem, setIsAddingItem] = useState(false)
-  const [editingItem, setEditingItem] = useState<ActionItem | null>(null)
-  const [actionItems, setActionItems] = useState<ActionItem[]>(mockActionItems)
-  const [columns, setColumns] = useState<Record<string, Column>>({})
+  const [viewMode, setViewMode] = useState<"kanban" | "table">("table");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [countryFilter, setCountryFilter] = useState<string>("all");
+  const [themeFilter, setThemeFilter] = useState<string>("all");
+  const [isAddingItem, setIsAddingItem] = useState(false);
+  const [editingItem, setEditingItem] = useState<ActionItem | null>(null);
+  const [actionItems, setActionItems] = useState<ActionItem[]>(mockActionItems);
+  const [columns, setColumns] = useState<Record<string, Column>>({});
 
   // Add a new state to track the currently viewed action item
-  const [viewingItem, setViewingItem] = useState<ActionItem | null>(null)
+  const [viewingItem, setViewingItem] = useState<ActionItem | null>(null);
+
+  const [sortConfig, setSortConfig] = useState<{
+    key: keyof ActionItem | "";
+    direction: "asc" | "desc" | "";
+  }>({
+    key: "",
+    direction: "",
+  });
 
   const filterActionItems = useCallback(
     (items: ActionItem[]) => {
       return items.filter((item) => {
         // Apply search query filter
         if (searchQuery) {
-          const query = searchQuery.toLowerCase()
+          const query = searchQuery.toLowerCase();
           const matchesSearch =
             item.actionItem.toLowerCase().includes(query) ||
             item.country.toLowerCase().includes(query) ||
             item.owner.toLowerCase().includes(query) ||
-            item.theme.toLowerCase().includes(query)
+            item.theme.toLowerCase().includes(query);
 
-          if (!matchesSearch) return false
+          if (!matchesSearch) return false;
         }
 
         // Apply country filter
-        if (countryFilter && countryFilter !== "all" && item.country !== countryFilter) {
-          return false
+        if (
+          countryFilter &&
+          countryFilter !== "all" &&
+          item.country !== countryFilter
+        ) {
+          return false;
         }
 
         // Apply theme filter
-        if (themeFilter && themeFilter !== "all" && item.theme !== themeFilter) {
-          return false
+        if (
+          themeFilter &&
+          themeFilter !== "all" &&
+          item.theme !== themeFilter
+        ) {
+          return false;
         }
 
-        return true
-      })
+        return true;
+      });
     },
-    [searchQuery, countryFilter, themeFilter],
-  )
+    [searchQuery, countryFilter, themeFilter]
+  );
 
   // Initialize columns for Kanban board
   useEffect(() => {
-    const filteredItems = filterActionItems(actionItems)
+    const filteredItems = filterActionItems(actionItems);
 
     const initialColumns: Record<string, Column> = {
       not_started: {
@@ -105,19 +148,19 @@ export default function ActionItemsBoard() {
         title: "Done",
         items: filteredItems.filter((item) => item.status === "done"),
       },
-    }
+    };
 
-    setColumns(initialColumns)
-  }, [actionItems, filterActionItems])
+    setColumns(initialColumns);
+  }, [actionItems, filterActionItems]);
 
   // Filter action items based on search query and filters
 
   // Fix the getCountryName function to return just the name when needed
   // Create a separate function for rendering country with flag
   const getCountryName = (code: string) => {
-    const country = mockCountries.find((c) => c.code === code)
-    return country ? country.name : code
-  }
+    const country = mockCountries.find((c) => c.code === code);
+    return country ? country.name : code;
+  };
 
   const renderCountryWithFlag = (code: string) => {
     return (
@@ -129,21 +172,21 @@ export default function ActionItemsBoard() {
         />
         <span>{getCountryName(code)}</span>
       </div>
-    )
-  }
+    );
+  };
 
   // Handle drag and drop
   const onDragEnd = (result: any) => {
-    if (!result.destination) return
+    if (!result.destination) return;
 
-    const { source, destination } = result
+    const { source, destination } = result;
 
     // If dropped in the same column but different position
     if (source.droppableId === destination.droppableId) {
-      const column = columns[source.droppableId]
-      const copiedItems = [...column.items]
-      const [removed] = copiedItems.splice(source.index, 1)
-      copiedItems.splice(destination.index, 0, removed)
+      const column = columns[source.droppableId];
+      const copiedItems = [...column.items];
+      const [removed] = copiedItems.splice(source.index, 1);
+      copiedItems.splice(destination.index, 0, removed);
 
       setColumns({
         ...columns,
@@ -151,23 +194,26 @@ export default function ActionItemsBoard() {
           ...column,
           items: copiedItems,
         },
-      })
+      });
     }
     // If dropped in a different column
     else {
-      const sourceColumn = columns[source.droppableId]
-      const destColumn = columns[destination.droppableId]
-      const sourceItems = [...sourceColumn.items]
-      const destItems = [...destColumn.items]
-      const [removed] = sourceItems.splice(source.index, 1)
+      const sourceColumn = columns[source.droppableId];
+      const destColumn = columns[destination.droppableId];
+      const sourceItems = [...sourceColumn.items];
+      const destItems = [...destColumn.items];
+      const [removed] = sourceItems.splice(source.index, 1);
 
       // Update the status of the item
       const updatedItem = {
         ...removed,
-        status: destination.droppableId as "not_started" | "in_progress" | "done",
-      }
+        status: destination.droppableId as
+          | "not_started"
+          | "in_progress"
+          | "done",
+      };
 
-      destItems.splice(destination.index, 0, updatedItem)
+      destItems.splice(destination.index, 0, updatedItem);
 
       setColumns({
         ...columns,
@@ -179,74 +225,113 @@ export default function ActionItemsBoard() {
           ...destColumn,
           items: destItems,
         },
-      })
+      });
 
       // Update the action items array with the new status
-      setActionItems(actionItems.map((item) => (item.id === updatedItem.id ? updatedItem : item)))
+      setActionItems(
+        actionItems.map((item) =>
+          item.id === updatedItem.id ? updatedItem : item
+        )
+      );
     }
-  }
+  };
 
   // Handle adding a new action item
   const handleAddItem = (newItem: Omit<ActionItem, "id">) => {
-    const id = Date.now().toString()
+    const id = Date.now().toString();
     const item: ActionItem = {
       id,
       ...newItem,
-    }
+    };
 
-    setActionItems([...actionItems, item])
-    setIsAddingItem(false)
-  }
+    setActionItems([...actionItems, item]);
+    setIsAddingItem(false);
+  };
 
   // Handle editing an action item
   const handleEditItem = (updatedItem: ActionItem) => {
-    setActionItems(actionItems.map((item) => (item.id === updatedItem.id ? updatedItem : item)))
-    setEditingItem(null)
-  }
+    setActionItems(
+      actionItems.map((item) =>
+        item.id === updatedItem.id ? updatedItem : item
+      )
+    );
+    setEditingItem(null);
+  };
 
   // Handle deleting an action item
   const handleDeleteItem = (id: string) => {
-    setActionItems(actionItems.filter((item) => item.id !== id))
-  }
+    setActionItems(actionItems.filter((item) => item.id !== id));
+  };
 
   // Add this function to handle viewing an action item
   const handleViewItem = (item: ActionItem) => {
-    setViewingItem(item)
-  }
+    setViewingItem(item);
+  };
 
   // Get status badge
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "not_started":
         return (
-          <Badge variant="outline" className="bg-gray-100 flex justify-center items-center">
+          <Badge
+            variant="outline"
+            className="bg-gray-100 flex justify-center items-center"
+          >
             Not Started
           </Badge>
-        )
+        );
       case "in_progress":
-        return <Badge className="bg-blue-500 flex justify-center items-center">In Progress</Badge>
+        return (
+          <Badge className="bg-blue-500 flex justify-center items-center">
+            In Progress
+          </Badge>
+        );
       case "done":
-        return <Badge className="bg-green-500 flex justify-center items-center">Done</Badge>
+        return (
+          <Badge className="bg-green-500 flex justify-center items-center">
+            Done
+          </Badge>
+        );
       default:
-        return null
+        return null;
     }
-  }
+  };
 
   // Get theme badge
   const getThemeBadge = (theme: string) => {
     switch (theme) {
       case "Trade":
-        return <Badge className="bg-blue-500 flex justify-center items-center">{theme}</Badge>
+        return (
+          <Badge className="bg-blue-500 flex justify-center items-center">
+            {theme}
+          </Badge>
+        );
       case "Investment":
-        return <Badge className="bg-green-500 flex justify-center items-center">{theme}</Badge>
+        return (
+          <Badge className="bg-green-500 flex justify-center items-center">
+            {theme}
+          </Badge>
+        );
       case "Human Capital":
-        return <Badge className="bg-purple-500 flex justify-center items-center">{theme}</Badge>
+        return (
+          <Badge className="bg-purple-500 flex justify-center items-center">
+            {theme}
+          </Badge>
+        );
       case "Knowledge Sharing":
-        return <Badge className="bg-amber-500 flex justify-center items-center">{theme}</Badge>
+        return (
+          <Badge className="bg-amber-500 flex justify-center items-center">
+            {theme}
+          </Badge>
+        );
       default:
-        return <Badge className="bg-gray-500 flex justify-center items-center">{theme}</Badge>
+        return (
+          <Badge className="bg-gray-500 flex justify-center items-center">
+            {theme}
+          </Badge>
+        );
     }
-  }
+  };
 
   // Render Kanban board view
   const renderKanbanView = () => {
@@ -257,9 +342,15 @@ export default function ActionItemsBoard() {
             <div key={column.id} className="flex flex-col h-full">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold flex items-center">
-                  {column.id === "not_started" && <AlertCircle className="mr-2 h-5 w-5 text-gray-500" />}
-                  {column.id === "in_progress" && <Clock className="mr-2 h-5 w-5 text-blue-500" />}
-                  {column.id === "done" && <CheckSquare className="mr-2 h-5 w-5 text-green-500" />}
+                  {column.id === "not_started" && (
+                    <AlertCircle className="mr-2 h-5 w-5 text-gray-500" />
+                  )}
+                  {column.id === "in_progress" && (
+                    <Clock className="mr-2 h-5 w-5 text-blue-500" />
+                  )}
+                  {column.id === "done" && (
+                    <CheckSquare className="mr-2 h-5 w-5 text-green-500" />
+                  )}
                   {column.title}
                 </h3>
                 <Badge>{column.items.length}</Badge>
@@ -274,9 +365,13 @@ export default function ActionItemsBoard() {
                   >
                     {column.items.length > 0 ? (
                       column.items.map((item, index) => {
-                        const profile = getProfileInfo(item.profileId)
+                        const profile = getProfileInfo(item.profileId);
                         return (
-                          <Draggable key={item.id} draggableId={item.id} index={index}>
+                          <Draggable
+                            key={item.id}
+                            draggableId={item.id}
+                            index={index}
+                          >
                             {(provided) => (
                               <Card
                                 key={item.id}
@@ -287,10 +382,12 @@ export default function ActionItemsBoard() {
                                 onClick={(e) => {
                                   // Prevent triggering when clicking on dropdown menu or links
                                   if (
-                                    !(e.target as HTMLElement).closest("[data-radix-popper-content-wrapper]") &&
+                                    !(e.target as HTMLElement).closest(
+                                      "[data-radix-popper-content-wrapper]"
+                                    ) &&
                                     !(e.target as HTMLElement).closest("a")
                                   ) {
-                                    handleViewItem(item)
+                                    handleViewItem(item);
                                   }
                                 }}
                               >
@@ -303,25 +400,37 @@ export default function ActionItemsBoard() {
                                     >
                                       <img
                                         src={`https://flagcdn.com/${item.country.toLowerCase()}.svg`}
-                                        alt={`${getCountryName(item.country)} flag`}
+                                        alt={`${getCountryName(
+                                          item.country
+                                        )} flag`}
                                         className="h-4 w-6 mr-1 rounded-sm object-cover"
                                       />
-                                      <span className="text-sm font-medium">{getCountryName(item.country)}</span>
+                                      <span className="text-sm font-medium">
+                                        {getCountryName(item.country)}
+                                      </span>
                                     </Link>
                                     <DropdownMenu>
                                       <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-8 w-8 p-0"
+                                        >
                                           <MoreVertical className="h-4 w-4" />
                                         </Button>
                                       </DropdownMenuTrigger>
                                       <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => setEditingItem(item)}>
+                                        <DropdownMenuItem
+                                          onClick={() => setEditingItem(item)}
+                                        >
                                           <Edit className="mr-2 h-4 w-4" />
                                           Edit
                                         </DropdownMenuItem>
                                         <DropdownMenuItem
                                           className="text-destructive"
-                                          onClick={() => handleDeleteItem(item.id)}
+                                          onClick={() =>
+                                            handleDeleteItem(item.id)
+                                          }
                                         >
                                           <Trash2 className="mr-2 h-4 w-4" />
                                           Delete
@@ -331,7 +440,9 @@ export default function ActionItemsBoard() {
                                   </div>
 
                                   <div className="mb-2">
-                                    <p className="font-medium">{item.actionItem}</p>
+                                    <p className="font-medium">
+                                      {item.actionItem}
+                                    </p>
                                   </div>
 
                                   <div className="flex items-center mb-2">
@@ -342,7 +453,10 @@ export default function ActionItemsBoard() {
                                     >
                                       {profile.imageUrl ? (
                                         <img
-                                          src={profile.imageUrl || "/placeholder.svg"}
+                                          src={
+                                            profile.imageUrl ||
+                                            "/placeholder.svg"
+                                          }
                                           alt={profile.fullName}
                                           className="h-5 w-5 rounded-full mr-1 object-cover"
                                         />
@@ -355,7 +469,10 @@ export default function ActionItemsBoard() {
 
                                   <div className="flex flex-wrap gap-2 mb-2">
                                     {getThemeBadge(item.theme)}
-                                    <Badge variant="outline" className="bg-gray-100">
+                                    <Badge
+                                      variant="outline"
+                                      className="bg-gray-100"
+                                    >
                                       <Briefcase className="mr-1 h-3 w-3" />
                                       {item.industry}
                                     </Badge>
@@ -375,7 +492,7 @@ export default function ActionItemsBoard() {
                               </Card>
                             )}
                           </Draggable>
-                        )
+                        );
                       })
                     ) : (
                       <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
@@ -390,18 +507,83 @@ export default function ActionItemsBoard() {
           ))}
         </div>
       </DragDropContext>
-    )
-  }
+    );
+  };
 
   // Add a function to get profile information
   const getProfileInfo = (profileId: string) => {
-    const profile = mockProfiles.find((p) => p.id === profileId)
-    return profile || { id: "", fullName: "Unknown Profile", position: "", country: "", type: "ambassador" }
-  }
+    const profile = mockProfiles.find((p) => p.id === profileId);
+    return (
+      profile || {
+        id: "",
+        fullName: "Unknown Profile",
+        position: "",
+        country: "",
+        type: "ambassador",
+        imageUrl: "", // Add imageUrl to fallback profile
+      }
+    );
+  };
+
+  const sortData = (items: ActionItem[]) => {
+    if (!sortConfig.key || !sortConfig.direction) {
+      return items;
+    }
+
+    return [...items].sort((a, b) => {
+      if (!sortConfig.key) return 0; // Handle empty key case explicitly
+
+      const aValue = a[sortConfig.key];
+      const bValue = b[sortConfig.key];
+
+      if (aValue === bValue) return 0;
+
+      const direction = sortConfig.direction === "asc" ? 1 : -1;
+
+      // Handle special cases for formatted displays
+      if (sortConfig.key === "country") {
+        return (
+          getCountryName(String(aValue)).localeCompare(
+            getCountryName(String(bValue))
+          ) * direction
+        );
+      }
+
+      if (aValue === null || aValue === undefined) return 1;
+      if (bValue === null || bValue === undefined) return -1;
+
+      return String(aValue).localeCompare(String(bValue)) * direction;
+    });
+  };
+
+  const handleSort = (key: keyof ActionItem) => {
+    setSortConfig((currentSort) => {
+      if (currentSort.key === key) {
+        if (currentSort.direction === "asc") {
+          return { key, direction: "desc" as const };
+        }
+        if (currentSort.direction === "desc") {
+          return { key: key, direction: "" as const };
+        }
+      }
+      return { key, direction: "asc" as const };
+    });
+  };
+
+  const getSortIcon = (key: keyof ActionItem) => {
+    if (sortConfig.key !== key || !sortConfig.direction) {
+      return <ArrowUpDown className="ml-2 h-4 w-4" />;
+    }
+    if (sortConfig.direction === "asc") {
+      return <ArrowUp className="ml-2 h-4 w-4" />;
+    }
+    return <ArrowDown className="ml-2 h-4 w-4" />;
+  };
 
   // Render table view
   const renderTableView = () => {
-    const filteredItems = filterActionItems(actionItems)
+    const filteredItems = filterActionItems(actionItems);
+    const sortedItems = sortData(filteredItems);
 
     return (
       <Card>
@@ -410,26 +592,130 @@ export default function ActionItemsBoard() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[180px]">Country</TableHead>
-                  <TableHead className="w-[180px]">Profile</TableHead>
-                  <TableHead className="w-[120px]">Date</TableHead>
-                  <TableHead className="w-[150px]">Source</TableHead>
-                  <TableHead className="w-[120px]">Theme</TableHead>
-                  <TableHead className="w-[150px]">Industry</TableHead>
-                  <TableHead className="min-w-[300px]">Action Item</TableHead>
-                  <TableHead className="min-w-[200px]">Updates</TableHead>
-                  <TableHead className="w-[150px]">Entities</TableHead>
-                  <TableHead className="w-[150px]">Entities (Other)</TableHead>
-                  <TableHead className="w-[120px]">Status</TableHead>
-                  <TableHead className="w-[150px]">Owner</TableHead>
-                  <TableHead className="w-[120px]">Due Date</TableHead>
+                  <TableHead
+                    className="w-[180px] cursor-pointer"
+                    onClick={() => handleSort("country")}
+                  >
+                    <div className="flex items-center">
+                      Country
+                      {getSortIcon("country")}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="w-[180px] cursor-pointer"
+                    onClick={() => handleSort("profileId")}
+                  >
+                    <div className="flex items-center">
+                      Profile
+                      {getSortIcon("profileId")}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="w-[120px] cursor-pointer"
+                    onClick={() => handleSort("date")}
+                  >
+                    <div className="flex items-center">
+                      Date
+                      {getSortIcon("date")}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="w-[150px] cursor-pointer"
+                    onClick={() => handleSort("source")}
+                  >
+                    <div className="flex items-center">
+                      Source
+                      {getSortIcon("source")}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="w-[120px] cursor-pointer"
+                    onClick={() => handleSort("theme")}
+                  >
+                    <div className="flex items-center">
+                      Theme
+                      {getSortIcon("theme")}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="w-[150px] cursor-pointer"
+                    onClick={() => handleSort("industry")}
+                  >
+                    <div className="flex items-center">
+                      Industry
+                      {getSortIcon("industry")}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="min-w-[300px] cursor-pointer"
+                    onClick={() => handleSort("actionItem")}
+                  >
+                    <div className="flex items-center">
+                      Action Item
+                      {getSortIcon("actionItem")}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="min-w-[200px] cursor-pointer"
+                    onClick={() => handleSort("updates")}
+                  >
+                    <div className="flex items-center">
+                      Updates
+                      {getSortIcon("updates")}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="w-[150px] cursor-pointer"
+                    onClick={() => handleSort("entities")}
+                  >
+                    <div className="flex items-center">
+                      Entities
+                      {getSortIcon("entities")}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="w-[150px] cursor-pointer"
+                    onClick={() => handleSort("entitiesOther")}
+                  >
+                    <div className="flex items-center">
+                      Entities (Other)
+                      {getSortIcon("entitiesOther")}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="w-[120px] cursor-pointer"
+                    onClick={() => handleSort("status")}
+                  >
+                    <div className="flex items-center">
+                      Status
+                      {getSortIcon("status")}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="w-[150px] cursor-pointer"
+                    onClick={() => handleSort("owner")}
+                  >
+                    <div className="flex items-center">
+                      Owner
+                      {getSortIcon("owner")}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="w-[120px] cursor-pointer"
+                    onClick={() => handleSort("dueDate")}
+                  >
+                    <div className="flex items-center">
+                      Due Date
+                      {getSortIcon("dueDate")}
+                    </div>
+                  </TableHead>
                   <TableHead className="w-[70px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredItems.length > 0 ? (
-                  filteredItems.map((item) => {
-                    const profile = getProfileInfo(item.profileId)
+                {sortedItems.length > 0 ? (
+                  sortedItems.map((item) => {
+                    const profile = getProfileInfo(item.profileId);
                     return (
                       <TableRow
                         key={item.id}
@@ -472,7 +758,9 @@ export default function ActionItemsBoard() {
                         <TableCell>{item.source}</TableCell>
                         <TableCell>{getThemeBadge(item.theme)}</TableCell>
                         <TableCell>{item.industry}</TableCell>
-                        <TableCell className="font-medium">{item.actionItem}</TableCell>
+                        <TableCell className="font-medium">
+                          {item.actionItem}
+                        </TableCell>
                         <TableCell>{item.updates || "-"}</TableCell>
                         <TableCell>{item.entities}</TableCell>
                         <TableCell>{item.entitiesOther || "-"}</TableCell>
@@ -482,16 +770,25 @@ export default function ActionItemsBoard() {
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                              >
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => setEditingItem(item)}>
+                              <DropdownMenuItem
+                                onClick={() => setEditingItem(item)}
+                              >
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteItem(item.id)}>
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => handleDeleteItem(item.id)}
+                              >
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Delete
                               </DropdownMenuItem>
@@ -499,7 +796,7 @@ export default function ActionItemsBoard() {
                           </DropdownMenu>
                         </TableCell>
                       </TableRow>
-                    )
+                    );
                   })
                 ) : (
                   <TableRow>
@@ -513,8 +810,8 @@ export default function ActionItemsBoard() {
           </div>
         </CardContent>
       </Card>
-    )
-  }
+    );
+  };
 
   // Action Item Form component
   const ActionItemForm = ({
@@ -536,52 +833,63 @@ export default function ActionItemsBoard() {
     },
     isEdit = false,
   }: {
-    onSubmit: (data: any) => void
-    initialData?: Partial<ActionItem>
-    isEdit?: boolean
+    onSubmit: (data: any) => void;
+    initialData?: Partial<ActionItem>;
+    isEdit?: boolean;
   }) => {
-    const [formData, setFormData] = useState(initialData)
-    const [availableProfiles, setAvailableProfiles] = useState<typeof mockProfiles>([])
+    const [formData, setFormData] = useState(initialData);
+    const [availableProfiles, setAvailableProfiles] = useState<
+      typeof mockProfiles
+    >([]);
 
     const updateProfiles = useCallback(() => {
       if (formData.country) {
-        const countryProfiles = mockProfiles.filter((profile) => profile.country === formData.country)
-        setAvailableProfiles(countryProfiles)
+        const countryProfiles = mockProfiles.filter(
+          (profile) => profile.country === formData.country
+        );
+        setAvailableProfiles(countryProfiles);
 
         // If the current profileId doesn't belong to this country, reset it
-        if (formData.profileId && !countryProfiles.some((p) => p.id === formData.profileId)) {
+        if (
+          formData.profileId &&
+          !countryProfiles.some((p) => p.id === formData.profileId)
+        ) {
           setFormData({
             ...formData,
             profileId: "",
-          })
+          });
         }
       } else {
-        setAvailableProfiles([])
+        setAvailableProfiles([]);
       }
-    }, [formData.country, formData.profileId])
+    }, [formData.country, formData.profileId]);
 
     useEffect(() => {
-      updateProfiles()
-    }, [updateProfiles])
+      updateProfiles();
+    }, [updateProfiles]);
 
     const handleChange = (field: string, value: string) => {
       setFormData({
         ...formData,
         [field]: value,
-      })
-    }
+      });
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
-      e.preventDefault()
-      onSubmit(formData)
-    }
+      e.preventDefault();
+      onSubmit(formData);
+    };
 
     return (
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="country">Country</Label>
-            <Select value={formData.country} onValueChange={(value) => handleChange("country", value)} required>
+            <Select
+              value={formData.country}
+              onValueChange={(value) => handleChange("country", value)}
+              required
+            >
               <SelectTrigger id="country">
                 <SelectValue placeholder="Select country" />
               </SelectTrigger>
@@ -604,7 +912,13 @@ export default function ActionItemsBoard() {
               required
             >
               <SelectTrigger id="profile">
-                <SelectValue placeholder={!formData.country ? "Select a country first" : "Select a profile"} />
+                <SelectValue
+                  placeholder={
+                    !formData.country
+                      ? "Select a country first"
+                      : "Select a profile"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {availableProfiles.map((profile) => (
@@ -656,7 +970,11 @@ export default function ActionItemsBoard() {
 
           <div className="space-y-2">
             <Label htmlFor="theme">Theme</Label>
-            <Select value={formData.theme} onValueChange={(value) => handleChange("theme", value)} required>
+            <Select
+              value={formData.theme}
+              onValueChange={(value) => handleChange("theme", value)}
+              required
+            >
               <SelectTrigger id="theme">
                 <SelectValue placeholder="Select theme" />
               </SelectTrigger>
@@ -664,7 +982,9 @@ export default function ActionItemsBoard() {
                 <SelectItem value="Trade">Trade</SelectItem>
                 <SelectItem value="Investment">Investment</SelectItem>
                 <SelectItem value="Human Capital">Human Capital</SelectItem>
-                <SelectItem value="Knowledge Sharing">Knowledge Sharing</SelectItem>
+                <SelectItem value="Knowledge Sharing">
+                  Knowledge Sharing
+                </SelectItem>
                 <SelectItem value="Other">Other</SelectItem>
               </SelectContent>
             </Select>
@@ -683,7 +1003,11 @@ export default function ActionItemsBoard() {
 
           <div className="space-y-2">
             <Label htmlFor="status">Status</Label>
-            <Select value={formData.status} onValueChange={(value) => handleChange("status", value as any)} required>
+            <Select
+              value={formData.status}
+              onValueChange={(value) => handleChange("status", value as any)}
+              required
+            >
               <SelectTrigger id="status">
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
@@ -768,8 +1092,8 @@ export default function ActionItemsBoard() {
           <Button type="submit">{isEdit ? "Update" : "Add"} Action Item</Button>
         </DialogFooter>
       </form>
-    )
-  }
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -794,7 +1118,10 @@ export default function ActionItemsBoard() {
                 <SelectContent>
                   <SelectItem value="all">All Countries</SelectItem>
                   {mockCountries.map((country) => (
-                    <SelectItem key={country.code} value={country.code || "none"}>
+                    <SelectItem
+                      key={country.code}
+                      value={country.code || "none"}
+                    >
                       {country.name}
                     </SelectItem>
                   ))}
@@ -810,7 +1137,9 @@ export default function ActionItemsBoard() {
                   <SelectItem value="Trade">Trade</SelectItem>
                   <SelectItem value="Investment">Investment</SelectItem>
                   <SelectItem value="Human Capital">Human Capital</SelectItem>
-                  <SelectItem value="Knowledge Sharing">Knowledge Sharing</SelectItem>
+                  <SelectItem value="Knowledge Sharing">
+                    Knowledge Sharing
+                  </SelectItem>
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
@@ -863,7 +1192,11 @@ export default function ActionItemsBoard() {
             <DialogHeader>
               <DialogTitle>Edit Action Item</DialogTitle>
             </DialogHeader>
-            <ActionItemForm onSubmit={handleEditItem} initialData={editingItem} isEdit={true} />
+            <ActionItemForm
+              onSubmit={handleEditItem}
+              initialData={editingItem}
+              isEdit={true}
+            />
           </DialogContent>
         </Dialog>
       )}
@@ -884,7 +1217,9 @@ export default function ActionItemsBoard() {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium">{viewingItem.actionItem}</h3>
+                <h3 className="text-lg font-medium">
+                  {viewingItem.actionItem}
+                </h3>
                 {getStatusBadge(viewingItem.status)}
               </div>
 
@@ -905,7 +1240,7 @@ export default function ActionItemsBoard() {
                   <Label className="text-sm font-medium">Profile</Label>
                   <div className="mt-1">
                     {(() => {
-                      const profile = getProfileInfo(viewingItem.profileId)
+                      const profile = getProfileInfo(viewingItem.profileId);
                       return (
                         <Link
                           href={`/dashboard/countries?profile=${profile.id}`}
@@ -921,9 +1256,11 @@ export default function ActionItemsBoard() {
                             <User className="h-4 w-4 mr-2" />
                           )}
                           {profile.fullName}
-                          <span className="ml-2 text-sm text-gray-500">({profile.position})</span>
+                          <span className="ml-2 text-sm text-gray-500">
+                            ({profile.position})
+                          </span>
                         </Link>
-                      )
+                      );
                     })()}
                   </div>
                 </div>
@@ -973,14 +1310,19 @@ export default function ActionItemsBoard() {
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium">Entities (Other)</Label>
+                  <Label className="text-sm font-medium">
+                    Entities (Other)
+                  </Label>
                   <p className="mt-1">{viewingItem.entitiesOther || "N/A"}</p>
                 </div>
               </div>
             </div>
             <DialogFooter className="flex justify-between">
               <div>
-                <Button variant="destructive" onClick={() => handleDeleteItem(viewingItem.id)}>
+                <Button
+                  variant="destructive"
+                  onClick={() => handleDeleteItem(viewingItem.id)}
+                >
                   <Trash2 className="mr-2 h-4 w-4" /> Delete
                 </Button>
               </div>
@@ -990,8 +1332,8 @@ export default function ActionItemsBoard() {
                 </Button>
                 <Button
                   onClick={() => {
-                    setEditingItem(viewingItem)
-                    setViewingItem(null)
+                    setEditingItem(viewingItem);
+                    setViewingItem(null);
                   }}
                 >
                   <Edit className="mr-2 h-4 w-4" /> Edit
@@ -1002,6 +1344,5 @@ export default function ActionItemsBoard() {
         </Dialog>
       )}
     </div>
-  )
+  );
 }
-
