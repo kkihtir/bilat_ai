@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { CalendarIcon, Plus, Trash2, User, ArrowRight, ArrowLeft, Check, FileText, Sparkles } from "lucide-react"
+import { CalendarIcon, Plus, Trash2, User, ArrowRight, ArrowLeft, Check, FileText, Sparkles, X, Loader2 } from "lucide-react"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format } from "date-fns"
@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge"
 import { mockTalkingPoints } from "@/lib/mock-talking-points"
 import { mockAgreements } from "@/lib/mock-agreements"
 import { mockActionItems } from "@/lib/mock-action-items"
+import { Checkbox } from "@/components/ui/checkbox"
 
 export default function ReportGenerator() {
   const [activeStep, setActiveStep] = useState("reports-list")
@@ -28,6 +29,7 @@ export default function ReportGenerator() {
   const [meetingName, setMeetingName] = useState("")
   const [meetingDate, setMeetingDate] = useState<Date | undefined>(undefined)
   const [selectedCountry, setSelectedCountry] = useState("")
+  const [selectedCountries, setSelectedCountries] = useState<string[]>([])
   const [selectedProfiles, setSelectedProfiles] = useState<any[]>([])
   const [countryOverview, setCountryOverview] = useState({
     economicIndicators: "",
@@ -87,6 +89,10 @@ export default function ReportGenerator() {
     setSelectedCountry(country)
     // In a real app, we would fetch profiles for this country
     setSelectedProfiles(mockProfiles.filter((profile) => profile.country === country).slice(0, 2))
+  }
+
+  const handleMultiCountryChange = (countries: string[]) => {
+    setSelectedCountries(countries)
   }
 
   const handleAddProfile = () => {
@@ -208,13 +214,19 @@ export default function ReportGenerator() {
     // Simulate report generation
     setTimeout(() => {
       // Add the new report to the saved reports
+      const reportTitle = reportType === "meeting" 
+        ? meetingName || `${getCountryName(selectedCountry)} Meeting`
+        : `${selectedCountries.map(code => getCountryName(code)).join(", ")} Report`;
+      
       const newReport = {
         id: Date.now().toString(),
-        title: meetingName || `${getCountryName(selectedCountry)} ${reportType === "meeting" ? "Meeting" : "Report"}`,
-        country: selectedCountry,
+        title: reportTitle,
+        country: reportType === "meeting" ? selectedCountry : selectedCountries[0],
         date: meetingDate ? format(meetingDate, "yyyy-MM-dd") : null,
         type: reportType,
         createdAt: format(new Date(), "yyyy-MM-dd"),
+        createdBy: "Current User",
+        approvalStatus: "pending"
       }
 
       setSavedReports([newReport, ...savedReports])
@@ -231,6 +243,7 @@ export default function ReportGenerator() {
     setMeetingName("")
     setMeetingDate(undefined)
     setSelectedCountry("")
+    setSelectedCountries([])
     setSelectedProfiles([])
     setCountryOverview({
       economicIndicators: "",
@@ -267,7 +280,8 @@ export default function ReportGenerator() {
   }
 
   const handleNext = () => {
-    const steps = [
+    // Different steps for meeting reports vs. informative reports
+    const meetingSteps = [
       "reports-list",
       "report-info",
       "profiles",
@@ -278,14 +292,25 @@ export default function ReportGenerator() {
       "talking-points-selection",
       "summary",
     ]
+    
+    const informativeSteps = [
+      "reports-list",
+      "report-info",
+      "country-overview",
+      "summary",
+    ]
+    
+    const steps = reportType === "meeting" ? meetingSteps : informativeSteps
     const currentIndex = steps.indexOf(activeStep)
+    
     if (currentIndex < steps.length - 1) {
       setActiveStep(steps[currentIndex + 1])
     }
   }
 
   const handlePrevious = () => {
-    const steps = [
+    // Different steps for meeting reports vs. informative reports
+    const meetingSteps = [
       "reports-list",
       "report-info",
       "profiles",
@@ -296,7 +321,17 @@ export default function ReportGenerator() {
       "talking-points-selection",
       "summary",
     ]
+    
+    const informativeSteps = [
+      "reports-list",
+      "report-info",
+      "country-overview",
+      "summary",
+    ]
+    
+    const steps = reportType === "meeting" ? meetingSteps : informativeSteps
     const currentIndex = steps.indexOf(activeStep)
+    
     if (currentIndex > 0) {
       setActiveStep(steps[currentIndex - 1])
     }
@@ -369,39 +404,74 @@ export default function ReportGenerator() {
       {activeStep !== "reports-list" && (
         <div className="w-full bg-muted rounded-lg p-1">
           <div className="flex justify-between">
-            {[
-              "report-info",
-              "profiles",
-              "country-overview",
-              "news-events",
-              "agreements",
-              "action-items-selection",
-              "talking-points-selection",
-              "summary",
-            ].map((step, index) => (
-              <div key={step} className={`flex items-center ${index < 7 ? "flex-1" : ""}`}>
-                <div
-                  className={`rounded-full h-8 w-8 flex items-center justify-center font-medium text-sm ${
-                    activeStep === step
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted-foreground/20 text-muted-foreground"
-                  }`}
-                >
-                  {index + 1}
+            {reportType === "meeting" ? (
+              // Meeting report steps
+              [
+                "report-info",
+                "profiles",
+                "country-overview",
+                "news-events",
+                "agreements",
+                "action-items-selection",
+                "talking-points-selection",
+                "summary",
+              ].map((step, index) => (
+                <div key={step} className={`flex items-center ${index < 7 ? "flex-1" : ""}`}>
+                  <div
+                    className={`rounded-full h-8 w-8 flex items-center justify-center font-medium text-sm ${
+                      activeStep === step
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted-foreground/20 text-muted-foreground"
+                    }`}
+                  >
+                    {index + 1}
+                  </div>
+                  {index < 7 && <div className="h-1 flex-1 mx-2 bg-muted-foreground/20"></div>}
                 </div>
-                {index < 7 && <div className="h-1 flex-1 mx-2 bg-muted-foreground/20"></div>}
-              </div>
-            ))}
+              ))
+            ) : (
+              // Informative report steps (only info, overview, summary)
+              [
+                "report-info",
+                "country-overview",
+                "summary",
+              ].map((step, index) => (
+                <div key={step} className={`flex items-center ${index < 2 ? "flex-1" : ""}`}>
+                  <div
+                    className={`rounded-full h-8 w-8 flex items-center justify-center font-medium text-sm ${
+                      activeStep === step
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted-foreground/20 text-muted-foreground"
+                    }`}
+                  >
+                    {index + 1}
+                  </div>
+                  {index < 2 && <div className="h-1 flex-1 mx-2 bg-muted-foreground/20"></div>}
+                </div>
+              ))
+            )}
           </div>
           <div className="flex justify-between mt-1 text-xs">
-            <div className="flex-1 text-center">Info</div>
-            <div className="flex-1 text-center">Profiles</div>
-            <div className="flex-1 text-center">Overview</div>
-            <div className="flex-1 text-center">News</div>
-            <div className="flex-1 text-center">Agreements</div>
-            <div className="flex-1 text-center">Action Items</div>
-            <div className="flex-1 text-center">Talking Points</div>
-            <div className="flex-1 text-center">Summary</div>
+            {reportType === "meeting" ? (
+              // Meeting report step labels
+              <>
+                <div className="flex-1 text-center">Info</div>
+                <div className="flex-1 text-center">Profiles</div>
+                <div className="flex-1 text-center">Overview</div>
+                <div className="flex-1 text-center">News</div>
+                <div className="flex-1 text-center">Agreements</div>
+                <div className="flex-1 text-center">Action Items</div>
+                <div className="flex-1 text-center">Talking Points</div>
+                <div className="flex-1 text-center">Summary</div>
+              </>
+            ) : (
+              // Informative report step labels
+              <>
+                <div className="flex-1 text-center">Info</div>
+                <div className="flex-1 text-center">Overview</div>
+                <div className="flex-1 text-center">Summary</div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -470,40 +540,100 @@ export default function ReportGenerator() {
                 )}
 
                 <div className="mt-4 p-4 border rounded-md bg-muted/30">
-                  <Label htmlFor="country" className="text-lg font-semibold">
-                    Select Country
-                  </Label>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Select value={selectedCountry} onValueChange={handleCountryChange}>
-                      <SelectTrigger id="country" className="flex-1">
-                        <SelectValue placeholder="Select a country" />
-                      </SelectTrigger>
-                      <SelectContent>
+                  {reportType === "meeting" ? (
+                    // Single country selection for meeting reports
+                    <>
+                      <Label htmlFor="country" className="text-lg font-semibold">
+                        Select Country
+                      </Label>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Select value={selectedCountry} onValueChange={handleCountryChange}>
+                          <SelectTrigger id="country" className="flex-1">
+                            <SelectValue placeholder="Select a country" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {mockCountries.map((country) => (
+                              <SelectItem key={country.code} value={country.code}>
+                                <div className="flex items-center gap-2">
+                                  <img
+                                    src={`https://flagcdn.com/${country.code.toLowerCase()}.svg`}
+                                    alt={`${country.name} flag`}
+                                    className="h-4 w-6 rounded-sm object-cover"
+                                  />
+                                  {country.name}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {selectedCountry && (
+                          <div className="flex items-center gap-2 px-3 py-2 bg-background rounded-md border">
+                            <img
+                              src={`https://flagcdn.com/${selectedCountry.toLowerCase()}.svg`}
+                              alt={`${getCountryName(selectedCountry)} flag`}
+                              className="h-5 w-8 rounded-sm object-cover"
+                            />
+                            <span className="font-medium">{getCountryName(selectedCountry)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    // Multiple countries selection for informative reports
+                    <>
+                      <Label className="text-lg font-semibold">Select Countries</Label>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        You can select multiple countries for informative reports
+                      </p>
+                      <div className="space-y-3 mt-2">
                         {mockCountries.map((country) => (
-                          <SelectItem key={country.code} value={country.code}>
-                            <div className="flex items-center gap-2">
+                          <div key={country.code} className="flex items-center space-x-2">
+                            <Checkbox 
+                              id={`country-${country.code}`} 
+                              checked={selectedCountries.includes(country.code)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedCountries([...selectedCountries, country.code]);
+                                } else {
+                                  setSelectedCountries(selectedCountries.filter(c => c !== country.code));
+                                }
+                              }}
+                            />
+                            <Label htmlFor={`country-${country.code}`} className="flex items-center gap-2 cursor-pointer">
                               <img
                                 src={`https://flagcdn.com/${country.code.toLowerCase()}.svg`}
                                 alt={`${country.name} flag`}
                                 className="h-4 w-6 rounded-sm object-cover"
                               />
                               {country.name}
-                            </div>
-                          </SelectItem>
+                            </Label>
+                          </div>
                         ))}
-                      </SelectContent>
-                    </Select>
-                    {selectedCountry && (
-                      <div className="flex items-center gap-2 px-3 py-2 bg-background rounded-md border">
-                        <img
-                          src={`https://flagcdn.com/${selectedCountry.toLowerCase()}.svg`}
-                          alt={`${getCountryName(selectedCountry)} flag`}
-                          className="h-5 w-8 rounded-sm object-cover"
-                        />
-                        <span className="font-medium">{getCountryName(selectedCountry)}</span>
                       </div>
-                    )}
-                  </div>
+                      {selectedCountries.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-4">
+                          {selectedCountries.map(code => (
+                            <div key={code} className="flex items-center gap-2 px-3 py-2 bg-background rounded-md border">
+                              <img
+                                src={`https://flagcdn.com/${code.toLowerCase()}.svg`}
+                                alt={`${getCountryName(code)} flag`}
+                                className="h-5 w-8 rounded-sm object-cover"
+                              />
+                              <span className="font-medium">{getCountryName(code)}</span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 ml-1"
+                                onClick={() => setSelectedCountries(selectedCountries.filter(c => c !== code))}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -513,15 +643,17 @@ export default function ReportGenerator() {
             <Button variant="outline" onClick={() => setActiveStep("reports-list")}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Back to Reports
             </Button>
-            <Button onClick={() => setActiveStep("profiles")} disabled={!selectedCountry}>
+            <Button 
+              onClick={handleNext} 
+              disabled={reportType === "meeting" ? !selectedCountry : selectedCountries.length === 0}>
               Next <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
         </div>
       )}
 
-      {/* Profiles */}
-      {activeStep === "profiles" && (
+      {/* Profiles - Only for meeting reports */}
+      {activeStep === "profiles" && reportType === "meeting" && (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Meeting Profiles</h2>
@@ -656,10 +788,10 @@ export default function ReportGenerator() {
           )}
 
           <div className="flex justify-between space-x-4">
-            <Button variant="outline" onClick={() => setActiveStep("report-info")}>
+            <Button variant="outline" onClick={handlePrevious}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Previous
             </Button>
-            <Button onClick={() => setActiveStep("country-overview")}>
+            <Button onClick={handleNext}>
               Next <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
@@ -803,18 +935,18 @@ export default function ReportGenerator() {
           )}
 
           <div className="flex justify-between space-x-4">
-            <Button variant="outline" onClick={() => setActiveStep("profiles")}>
+            <Button variant="outline" onClick={handlePrevious}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Previous
             </Button>
-            <Button onClick={() => setActiveStep("news-events")}>
+            <Button onClick={handleNext}>
               Next <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
         </div>
       )}
 
-      {/* News & Events */}
-      {activeStep === "news-events" && (
+      {/* News & Events - Only for meeting reports */}
+      {activeStep === "news-events" && reportType === "meeting" && (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">News & Events</h2>
@@ -845,18 +977,18 @@ export default function ReportGenerator() {
           )}
 
           <div className="flex justify-between space-x-4">
-            <Button variant="outline" onClick={() => setActiveStep("country-overview")}>
+            <Button variant="outline" onClick={handlePrevious}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Previous
             </Button>
-            <Button onClick={() => setActiveStep("agreements")}>
+            <Button onClick={handleNext}>
               Next <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
         </div>
       )}
 
-      {/* Agreements */}
-      {activeStep === "agreements" && (
+      {/* Agreements - Only for meeting reports */}
+      {activeStep === "agreements" && reportType === "meeting" && (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">
@@ -946,18 +1078,18 @@ export default function ReportGenerator() {
           )}
 
           <div className="flex justify-between space-x-4">
-            <Button variant="outline" onClick={() => setActiveStep("news-events")}>
+            <Button variant="outline" onClick={handlePrevious}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Previous
             </Button>
-            <Button onClick={() => setActiveStep("action-items-selection")}>
+            <Button onClick={handleNext}>
               Next <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
         </div>
       )}
 
-      {/* Action Items Selection */}
-      {activeStep === "action-items-selection" && (
+      {/* Action Items Selection - Only for meeting reports */}
+      {activeStep === "action-items-selection" && reportType === "meeting" && (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">
@@ -1038,18 +1170,18 @@ export default function ReportGenerator() {
           )}
 
           <div className="flex justify-between space-x-4">
-            <Button variant="outline" onClick={() => setActiveStep("agreements")}>
+            <Button variant="outline" onClick={handlePrevious}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Previous
             </Button>
-            <Button onClick={() => setActiveStep("talking-points-selection")}>
+            <Button onClick={handleNext}>
               Next <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
         </div>
       )}
 
-      {/* Talking Points Selection */}
-      {activeStep === "talking-points-selection" && (
+      {/* Talking Points Selection - Only for meeting reports */}
+      {activeStep === "talking-points-selection" && reportType === "meeting" && (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">
@@ -1098,10 +1230,10 @@ export default function ReportGenerator() {
           )}
 
           <div className="flex justify-between space-x-4">
-            <Button variant="outline" onClick={() => setActiveStep("action-items-selection")}>
+            <Button variant="outline" onClick={handlePrevious}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Previous
             </Button>
-            <Button onClick={() => setActiveStep("summary")}>
+            <Button onClick={handleNext}>
               Next <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
@@ -1111,198 +1243,188 @@ export default function ReportGenerator() {
       {/* Summary */}
       {activeStep === "summary" && (
         <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Report Summary</h2>
+          </div>
+
           <Card>
-            <CardHeader>
-              <CardTitle>Report Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-lg font-medium">Report Details</h3>
-                    <div className="mt-2 space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Type:</span>
-                        <span className="font-medium">
-                          {reportType === "meeting" ? "Meeting Report" : "Informative Report"}
-                        </span>
-                      </div>
-                      {reportType === "meeting" && (
-                        <>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Meeting Name:</span>
-                            <span className="font-medium">{meetingName || "Untitled Meeting"}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Meeting Date:</span>
-                            <span className="font-medium">{meetingDate ? format(meetingDate, "PPP") : "Not set"}</span>
-                          </div>
-                        </>
-                      )}
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Country:</span>
-                        <span className="font-medium">
-                          {selectedCountry ? getCountryName(selectedCountry) : "Not selected"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-medium">Profiles</h3>
-                    <div className="mt-2">
-                      {selectedProfiles.length > 0 ? (
-                        <ul className="space-y-1">
-                          {selectedProfiles.map((profile) => (
-                            <li key={profile.id} className="flex justify-between">
-                              <span>{profile.fullName || "Unnamed Profile"}</span>
-                              <span className="text-muted-foreground">{profile.position || "No position"}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-muted-foreground">No profiles added</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <h3 className="text-lg font-medium">Bilateral Agreements</h3>
-                  <div className="mt-2">
-                    {selectedCountry && getCountryAgreements(selectedCountry).length > 0 ? (
-                      <div className="space-y-2">
-                        <div className="flex justify-between font-medium text-sm">
-                          <span>Agreement</span>
-                          <span>Status</span>
-                        </div>
-                        <ul className="space-y-2 border rounded-md divide-y">
-                          {getCountryAgreements(selectedCountry).map((agreement) => (
-                            <li key={agreement.id} className="flex justify-between items-center p-2">
-                              <span className="truncate max-w-[200px]">{agreement.name}</span>
-                              <div className="flex items-center gap-2">{getStatusBadge(agreement.status)}</div>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
+            <CardContent className="pt-6">
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium">Report Info</h3>
+                  <ul className="mt-2 space-y-1">
+                    <li className="flex justify-between">
+                      <span>Type</span>
+                      <span className="text-muted-foreground capitalize">{reportType}</span>
+                    </li>
+                    {reportType === "meeting" ? (
+                      <>
+                        <li className="flex justify-between">
+                          <span>Meeting Name</span>
+                          <span className="text-muted-foreground">{meetingName || "Not specified"}</span>
+                        </li>
+                        <li className="flex justify-between">
+                          <span>Date</span>
+                          <span className="text-muted-foreground">
+                            {meetingDate ? format(meetingDate, "PPP") : "Not specified"}
+                          </span>
+                        </li>
+                        <li className="flex justify-between">
+                          <span>Country</span>
+                          <span className="text-muted-foreground">{getCountryName(selectedCountry)}</span>
+                        </li>
+                      </>
                     ) : (
-                      <p className="text-muted-foreground">No agreements found</p>
+                      <li className="flex justify-between">
+                        <span>Countries</span>
+                        <span className="text-muted-foreground">
+                          {selectedCountries.map(code => getCountryName(code)).join(", ")}
+                        </span>
+                      </li>
                     )}
-                  </div>
-
-                  <h3 className="text-lg font-medium">Talking Points</h3>
-                  <div className="mt-2">
-                    {customTalkingPoint.title || selectedTalkingPoints.length > 0 ? (
-                      <div className="space-y-2">
-                        {customTalkingPoint.title && (
-                          <div className="p-2 border rounded-md">
-                            <p className="font-medium">{customTalkingPoint.title}</p>
-                            <p className="text-sm text-muted-foreground">Custom talking point</p>
-                          </div>
-                        )}
-                        {selectedTalkingPoints.map((tpId) => {
-                          const tp = mockTalkingPoints.find((t) => t.id === tpId)
-                          return tp ? (
-                            <div key={tp.id} className="p-2 border rounded-md">
-                              <p className="font-medium">{tp.title}</p>
-                              <p className="text-sm text-muted-foreground">{tp.category}</p>
-                            </div>
-                          ) : null
-                        })}
-                      </div>
-                    ) : (
-                      <p className="text-muted-foreground">No talking points selected</p>
-                    )}
-                  </div>
+                  </ul>
                 </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-lg font-medium">Country Overview</h3>
-                    <div className="mt-2">
-                      <ul className="space-y-1">
-                        <li className="flex justify-between">
-                          <span>Economic Indicators</span>
-                          <span className="text-muted-foreground">
-                            {countryOverview.economicIndicators ? "Completed" : "Not completed"}
-                          </span>
-                        </li>
-                        <li className="flex justify-between">
-                          <span>Country Perception</span>
-                          <span className="text-muted-foreground">
-                            {countryOverview.countryPerception ? "Completed" : "Not completed"}
-                          </span>
-                        </li>
-                        <li className="flex justify-between">
-                          <span>Trade Sectors</span>
-                          <span className="text-muted-foreground">
-                            {countryOverview.tradeSectors ? "Completed" : "Not completed"}
-                          </span>
-                        </li>
-                        <li className="flex justify-between">
-                          <span>Trade with USA</span>
-                          <span className="text-muted-foreground">
-                            {countryOverview.tradeWithUSA ? "Completed" : "Not completed"}
-                          </span>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-medium">News & Events</h3>
-                    <div className="mt-2">
-                      <span className="text-muted-foreground">{newsEvents ? "Completed" : "Not completed"}</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-medium">Action Items</h3>
-                    <div className="mt-2">
-                      {selectedActionItems.length > 0 ? (
-                        <ul className="space-y-1">
-                          {selectedActionItems.map((itemId) => {
-                            const item = mockActionItems.find((i) => i.id === itemId)
-                            return item ? (
-                              <li key={item.id} className="flex justify-between">
-                                <span className="truncate max-w-[200px]">{item.actionItem}</span>
-                                <Badge
-                                  className={
-                                    item.status === "not_started"
-                                      ? "bg-gray-500"
-                                      : item.status === "in_progress"
-                                        ? "bg-blue-500"
-                                        : "bg-green-500"
-                                  }
-                                >
-                                  {item.status === "not_started"
-                                    ? "Not Started"
-                                    : item.status === "in_progress"
-                                      ? "In Progress"
-                                      : "Done"}
-                                </Badge>
+                {reportType === "meeting" && (
+                  <>
+                    <div>
+                      <h3 className="text-lg font-medium">Profiles</h3>
+                      <div className="mt-2">
+                        {selectedProfiles.length > 0 ? (
+                          <ul className="space-y-1">
+                            {selectedProfiles.map((profile) => (
+                              <li key={profile.id} className="flex justify-between">
+                                <span>{profile.fullName || "Unnamed Profile"}</span>
+                                <span className="text-muted-foreground">{profile.position || "No position"}</span>
                               </li>
-                            ) : null
-                          })}
-                        </ul>
-                      ) : (
-                        <p className="text-muted-foreground">No action items selected</p>
-                      )}
+                            ))}
+                          </ul>
+                        ) : (
+                          <span className="text-muted-foreground">No profiles added</span>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  </>
+                )}
+
+                <div>
+                  <h3 className="text-lg font-medium">Country Overview</h3>
+                  <ul className="mt-2 space-y-1">
+                    <li className="flex justify-between">
+                      <span>Economic Indicators</span>
+                      <span className="text-muted-foreground">
+                        {countryOverview.economicIndicators ? "Completed" : "Not completed"}
+                      </span>
+                    </li>
+                    <li className="flex justify-between">
+                      <span>Country Perception</span>
+                      <span className="text-muted-foreground">
+                        {countryOverview.countryPerception ? "Completed" : "Not completed"}
+                      </span>
+                    </li>
+                    <li className="flex justify-between">
+                      <span>Trade Sectors</span>
+                      <span className="text-muted-foreground">
+                        {countryOverview.tradeSectors ? "Completed" : "Not completed"}
+                      </span>
+                    </li>
+                    <li className="flex justify-between">
+                      <span>Trade with USA</span>
+                      <span className="text-muted-foreground">
+                        {countryOverview.tradeWithUSA ? "Completed" : "Not completed"}
+                      </span>
+                    </li>
+                  </ul>
                 </div>
+
+                {reportType === "meeting" && (
+                  <>
+                    <div>
+                      <h3 className="text-lg font-medium">News & Events</h3>
+                      <div className="mt-2">
+                        <span className="text-muted-foreground">{newsEvents ? "Completed" : "Not completed"}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-medium">Action Items</h3>
+                      <div className="mt-2">
+                        {selectedActionItems.length > 0 ? (
+                          <ul className="space-y-1">
+                            {selectedActionItems.map((itemId) => {
+                              const item = mockActionItems.find((i) => i.id === itemId)
+                              return item ? (
+                                <li key={item.id} className="flex justify-between">
+                                  <span className="truncate max-w-[200px]">{item.actionItem}</span>
+                                  <Badge
+                                    className={
+                                      item.status === "not_started"
+                                        ? "bg-gray-500"
+                                        : item.status === "in_progress"
+                                        ? "bg-blue-500"
+                                        : item.status === "done"
+                                        ? "bg-green-500"
+                                        : "bg-red-500"
+                                    }
+                                  >
+                                    {item.status === "not_started"
+                                      ? "Not Started"
+                                      : item.status === "in_progress"
+                                      ? "In Progress"
+                                      : item.status === "done"
+                                      ? "Done"
+                                      : "Blocked"}
+                                  </Badge>
+                                </li>
+                              ) : null
+                            })}
+                          </ul>
+                        ) : (
+                          <span className="text-muted-foreground">No action items selected</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-medium">Talking Points</h3>
+                      <div className="mt-2">
+                        {selectedTalkingPoints.length > 0 ? (
+                          <ul className="space-y-1">
+                            {selectedTalkingPoints.map((tpId) => {
+                              const tp = mockTalkingPoints.find((t) => t.id === tpId)
+                              return tp ? (
+                                <li key={tp.id} className="flex justify-between">
+                                  <span className="truncate max-w-[200px]">{tp.title}</span>
+                                  <Badge variant="outline">{tp.category}</Badge>
+                                </li>
+                              ) : null
+                            })}
+                          </ul>
+                        ) : (
+                          <span className="text-muted-foreground">No talking points selected</span>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
 
           <div className="flex justify-between space-x-4">
-            <Button variant="outline" onClick={() => setActiveStep("talking-points-selection")}>
+            <Button variant="outline" onClick={handlePrevious}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Previous
             </Button>
-            <Button
-              onClick={handleGenerateReport}
-              disabled={isGeneratingReport || !selectedCountry}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              {isGeneratingReport ? "Generating..." : "Generate Final Report"} <Check className="ml-2 h-4 w-4" />
+            <Button onClick={handleGenerateReport} disabled={isGeneratingReport}>
+              {isGeneratingReport ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...
+                </>
+              ) : (
+                <>
+                  <FileText className="mr-2 h-4 w-4" /> Generate Report
+                </>
+              )}
             </Button>
           </div>
         </div>

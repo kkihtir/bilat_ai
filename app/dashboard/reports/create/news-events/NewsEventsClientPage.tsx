@@ -14,6 +14,7 @@ export default function NewsEventsClientPage() {
   const [selectedCountry, setSelectedCountry] = useState("")
   const [newsEvents, setNewsEvents] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
+  const [reportType, setReportType] = useState<"meeting" | "informative">("meeting")
 
   // Load existing data if available
   useEffect(() => {
@@ -22,6 +23,7 @@ export default function NewsEventsClientPage() {
       const parsedData = JSON.parse(reportData)
       setSelectedCountry(parsedData.selectedCountry || "")
       setNewsEvents(parsedData.newsEvents || "")
+      setReportType(parsedData.reportType || "meeting")
     }
   }, [])
 
@@ -81,7 +83,7 @@ export default function NewsEventsClientPage() {
 
   return (
     <div className="space-y-6">
-      <ReportProgressIndicator currentStep="news-events" />
+      <ReportProgressIndicator currentStep="news-events" reportType={reportType} />
 
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">

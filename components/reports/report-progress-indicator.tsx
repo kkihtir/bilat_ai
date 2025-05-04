@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
 
 type Step =
@@ -14,10 +15,37 @@ type Step =
 
 interface ReportProgressIndicatorProps {
   currentStep: Step
+  reportType?: "meeting" | "informative"
 }
 
-export default function ReportProgressIndicator({ currentStep }: ReportProgressIndicatorProps) {
-  const steps: { id: Step; label: string }[] = [
+export default function ReportProgressIndicator({ 
+  currentStep, 
+  reportType: propReportType 
+}: ReportProgressIndicatorProps) {
+  const [reportType, setReportType] = useState<"meeting" | "informative">(propReportType || "meeting")
+  
+  // Update reportType when prop changes
+  useEffect(() => {
+    if (propReportType) {
+      setReportType(propReportType)
+    }
+  }, [propReportType])
+  
+  // Load report type from localStorage if not provided as prop
+  useEffect(() => {
+    if (!propReportType) {
+      const reportData = localStorage.getItem("reportData")
+      if (reportData) {
+        const parsedData = JSON.parse(reportData)
+        if (parsedData.reportType === "meeting" || parsedData.reportType === "informative") {
+          setReportType(parsedData.reportType)
+        }
+      }
+    }
+  }, [propReportType])
+
+  // Define steps based on report type
+  const meetingSteps: { id: Step; label: string }[] = [
     { id: "report-info", label: "Info" },
     { id: "profiles", label: "Profiles" },
     { id: "country-overview", label: "Overview" },
@@ -27,6 +55,15 @@ export default function ReportProgressIndicator({ currentStep }: ReportProgressI
     { id: "talking-points", label: "Talking Points" },
     { id: "summary", label: "Summary" },
   ]
+  
+  const informativeSteps: { id: Step; label: string }[] = [
+    { id: "report-info", label: "Info" },
+    { id: "country-overview", label: "Overview" },
+    { id: "summary", label: "Summary" },
+  ]
+  
+  // Select appropriate steps based on report type
+  const steps = reportType === "meeting" ? meetingSteps : informativeSteps
 
   const currentIndex = steps.findIndex((step) => step.id === currentStep)
 

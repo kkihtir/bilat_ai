@@ -52,6 +52,7 @@ export default function ActionItemsClientPage() {
   const [currentActionItem, setCurrentActionItem] = useState<ActionItem | null>(null)
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban")
   const [columns, setColumns] = useState<Record<string, Column>>({})
+  const [reportType, setReportType] = useState<"meeting" | "informative">("meeting")
 
   // Load existing data if available
   useEffect(() => {
@@ -59,6 +60,7 @@ export default function ActionItemsClientPage() {
     if (reportData) {
       const parsedData = JSON.parse(reportData)
       setSelectedCountry(parsedData.selectedCountry || "")
+      setReportType(parsedData.reportType || "meeting")
       
       // If we have action items in the report data, use those
       if (parsedData.actionItems && Array.isArray(parsedData.actionItems)) {
@@ -318,7 +320,7 @@ export default function ActionItemsClientPage() {
 
   return (
     <div className="space-y-6">
-      <ReportProgressIndicator currentStep="action-items" />
+      <ReportProgressIndicator currentStep="action-items" reportType={reportType} />
 
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">

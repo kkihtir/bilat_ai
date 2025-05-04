@@ -13,6 +13,7 @@ export default function AgreementsClientPage() {
   const router = useRouter()
   const [selectedCountry, setSelectedCountry] = useState("")
   const [agreements, setAgreements] = useState<any[]>([])
+  const [reportType, setReportType] = useState<"meeting" | "informative">("meeting")
 
   // Load existing data if available
   useEffect(() => {
@@ -20,6 +21,7 @@ export default function AgreementsClientPage() {
     if (reportData) {
       const parsedData = JSON.parse(reportData)
       setSelectedCountry(parsedData.selectedCountry || "")
+      setReportType(parsedData.reportType || "meeting")
 
       // Load agreements for this country
       if (parsedData.selectedCountry) {
@@ -91,7 +93,7 @@ export default function AgreementsClientPage() {
 
   return (
     <div className="space-y-6">
-      <ReportProgressIndicator currentStep="agreements" />
+      <ReportProgressIndicator currentStep="agreements" reportType={reportType} />
 
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">

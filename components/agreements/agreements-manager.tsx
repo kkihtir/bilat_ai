@@ -570,7 +570,7 @@ export default function AgreementsManager() {
                   filteredAgreements.map((agreement) => (
                     <TableRow
                       key={agreement.id}
-                      className="hover:bg-gray-50 cursor-pointer"
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
                       onClick={() => handleViewAgreement(agreement)}
                     >
                       <TableCell>{renderCountryWithFlag(agreement.country)}</TableCell>
@@ -886,7 +886,7 @@ export default function AgreementsManager() {
 
               <div>
                 <Label className="text-sm font-medium">Description</Label>
-                <p className="mt-1 p-2 bg-gray-50 rounded-md min-h-[60px]">
+                <p className="mt-1 p-2 bg-gray-50 dark:bg-gray-800 rounded-md min-h-[60px]">
                   {viewingAgreement.description || "No description provided."}
                 </p>
               </div>
@@ -913,7 +913,7 @@ export default function AgreementsManager() {
                 <div className="space-y-3 mt-4">
                   {viewingAgreement.updates && viewingAgreement.updates.length > 0 ? (
                     viewingAgreement.updates.map((update) => (
-                      <div key={update.id} className="border rounded-md p-3 bg-gray-50">
+                      <div key={update.id} className="border rounded-md p-3 bg-gray-50 dark:bg-gray-800">
                         <div className="flex justify-between items-start mb-1">
                           <span className="font-medium text-sm">{update.author || "Unknown"}</span>
                           <span className="text-xs text-muted-foreground">{update.date}</span>

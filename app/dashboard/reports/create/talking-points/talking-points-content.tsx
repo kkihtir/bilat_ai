@@ -23,6 +23,7 @@ export default function TalkingPointsContent() {
     category: "economic",
   })
   const [isGenerating, setIsGenerating] = useState(false)
+  const [reportType, setReportType] = useState<"meeting" | "informative">("meeting")
 
   // Load existing data if available
   useEffect(() => {
@@ -31,6 +32,7 @@ export default function TalkingPointsContent() {
       const parsedData = JSON.parse(reportData)
       setSelectedCountry(parsedData.selectedCountry || "")
       setTalkingPoints(parsedData.talkingPoints || [])
+      setReportType(parsedData.reportType || "meeting")
     }
   }, [])
 
@@ -95,7 +97,7 @@ export default function TalkingPointsContent() {
 
   return (
     <div className="space-y-6">
-      <ReportProgressIndicator currentStep="talking-points" />
+      <ReportProgressIndicator currentStep="talking-points" reportType={reportType} />
 
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">

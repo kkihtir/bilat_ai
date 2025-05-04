@@ -18,8 +18,13 @@ export default function SummaryContent() {
   useEffect(() => {
     const storedData = localStorage.getItem("reportData")
     if (storedData) {
-      const parsedData = JSON.parse(storedData)
-      setReportData(parsedData)
+      try {
+        const parsedData = JSON.parse(storedData)
+        setReportData(parsedData || {})
+      } catch (e) {
+        console.error("Error parsing report data:", e)
+        setReportData({})
+      }
     }
   }, [])
 
@@ -28,21 +33,34 @@ export default function SummaryContent() {
 
     // Simulate report generation
     setTimeout(() => {
-      // In a real app, we would save the report to the database
+      try {
+        // In a real app, we would save the report to the database
+        console.log(`Generating ${reportData.reportType} report for ${
+          reportData.reportType === "meeting" 
+          ? reportData.selectedCountry 
+          : reportData.selectedCountries?.join(", ")
+        }`)
 
-      // Clear the report data from localStorage
-      localStorage.removeItem("reportData")
+        // Clear the report data from localStorage
+        localStorage.removeItem("reportData")
 
-      // Navigate to reports list
-      router.push("/dashboard/reports/list")
-
-      setIsGeneratingReport(false)
+        // Navigate to reports list
+        router.push("/dashboard/reports/list")
+      } catch (error) {
+        console.error("Error generating report:", error)
+      } finally {
+        setIsGeneratingReport(false)
+      }
     }, 2000)
   }
 
   const handlePrevious = () => {
-    // Navigate to previous step
-    router.push("/dashboard/reports/create/talking-points")
+    // Navigate to previous step based on report type
+    if (reportData.reportType === "meeting") {
+      router.push("/dashboard/reports/create/talking-points")
+    } else {
+      router.push("/dashboard/reports/create/country-overview")
+    }
   }
 
   const getCountryName = (code: string) => {
@@ -64,13 +82,54 @@ export default function SummaryContent() {
     }
   }
 
+  // Get list of countries for display based on report type
+  const getSelectedCountries = () => {
+    if (reportData.reportType === "informative" && reportData.selectedCountries?.length) {
+      return reportData.selectedCountries
+    }
+    return reportData.selectedCountry ? [reportData.selectedCountry] : []
+  }
+
+  // Check if country overviews exist
+  const hasCountryOverviews = (countryCode: string) => {
+    if (reportData.countryOverviews && reportData.countryOverviews[countryCode]) {
+      return true
+    }
+    // Also check if this is the selected country and we have a single country overview
+    if (countryCode === reportData.selectedCountry && reportData.countryOverview) {
+      return true
+    }
+    return false
+  }
+
+  // Get country overview for a specific country
+  const getCountryOverview = (countryCode: string) => {
+    if (reportData.countryOverviews && reportData.countryOverviews[countryCode]) {
+      return reportData.countryOverviews[countryCode]
+    }
+    // Also check if this is the selected country and we have a single country overview
+    if (countryCode === reportData.selectedCountry && reportData.countryOverview) {
+      return reportData.countryOverview
+    }
+    return {
+      economicIndicators: "",
+      countryPerception: "",
+      tradeSectors: "",
+      tradeWithUSA: ""
+    }
+  }
+
+  const selectedCountries = getSelectedCountries()
+
   return (
     <div className="space-y-6">
-      <ReportProgressIndicator currentStep="summary" />
+      <ReportProgressIndicator currentStep="summary" reportType={reportData.reportType} />
 
       <Card>
         <CardHeader>
-          <CardTitle>Report Summary</CardTitle>
+          <CardTitle>
+            {reportData.reportType === "meeting" ? "Step 8/8: Report Summary" : "Step 3/3: Report Summary"}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -98,131 +157,176 @@ export default function SummaryContent() {
                       </div>
                     </>
                   )}
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Country:</span>
-                    <span className="font-medium">
-                      {reportData.selectedCountry ? getCountryName(reportData.selectedCountry) : "Not selected"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-medium">Profiles</h3>
-                <div className="mt-2">
-                  {reportData.selectedProfiles && reportData.selectedProfiles.length > 0 ? (
-                    <ul className="space-y-1">
-                      {reportData.selectedProfiles.map((profile: any) => (
-                        <li key={profile.id} className="flex justify-between">
-                          <span>{profile.fullName || "Unnamed Profile"}</span>
-                          <span className="text-muted-foreground">{profile.position || "No position"}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-muted-foreground">No profiles added</p>
-                  )}
-                </div>
-              </div>
-
-              <h3 className="text-lg font-medium">Bilateral Agreements</h3>
-              <div className="mt-2">
-                {reportData.agreements && reportData.agreements.length > 0 ? (
-                  <div className="space-y-2">
-                    <div className="flex justify-between font-medium text-sm">
-                      <span>Agreement</span>
-                      <span>Status</span>
+                  <div className="flex justify-between items-start">
+                    <span className="text-muted-foreground">{selectedCountries.length > 1 ? 'Countries:' : 'Country:'}</span>
+                    <div className="text-right">
+                      {selectedCountries.length > 0 ? (
+                        <div className="space-y-1">
+                          {selectedCountries.map((countryCode: string) => (
+                            <div key={countryCode} className="flex items-center justify-end gap-2 font-medium">
+                              <img
+                                src={`https://flagcdn.com/${countryCode.toLowerCase()}.svg`}
+                                alt={getCountryName(countryCode)}
+                                className="h-4 w-6 rounded-sm object-cover"
+                              />
+                              {getCountryName(countryCode)}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="font-medium">Not selected</span>
+                      )}
                     </div>
-                    <ul className="space-y-2 border rounded-md divide-y">
-                      {reportData.agreements.map((agreement: any) => (
-                        <li key={agreement.id} className="flex justify-between items-center p-2">
-                          <span className="truncate max-w-[200px]">{agreement.name}</span>
-                          <div className="flex items-center gap-2">{getStatusBadge(agreement.status)}</div>
-                        </li>
-                      ))}
-                    </ul>
                   </div>
-                ) : (
-                  <p className="text-muted-foreground">No agreements found</p>
-                )}
+                </div>
               </div>
+
+              {reportData.reportType === "meeting" && (
+                <>
+                  <div>
+                    <h3 className="text-lg font-medium">Profiles</h3>
+                    <div className="mt-2">
+                      {reportData.selectedProfiles && reportData.selectedProfiles.length > 0 ? (
+                        <ul className="space-y-1">
+                          {reportData.selectedProfiles.map((profile: any) => (
+                            <li key={profile.id} className="flex justify-between">
+                              <span>{profile.fullName || "Unnamed Profile"}</span>
+                              <span className="text-muted-foreground">{profile.position || "No position"}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-muted-foreground">No profiles added</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <h3 className="text-lg font-medium">Bilateral Agreements</h3>
+                  <div className="mt-2">
+                    {reportData.agreements && reportData.agreements.length > 0 ? (
+                      <div className="space-y-2">
+                        <div className="flex justify-between font-medium text-sm">
+                          <span>Agreement</span>
+                          <span>Status</span>
+                        </div>
+                        <ul className="space-y-2 border rounded-md divide-y">
+                          {reportData.agreements.map((agreement: any) => (
+                            <li key={agreement.id} className="flex justify-between items-center p-2">
+                              <span className="truncate max-w-[200px]">{agreement.name}</span>
+                              <div className="flex items-center gap-2">{getStatusBadge(agreement.status)}</div>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground">No agreements found</p>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="space-y-4">
               <div>
                 <h3 className="text-lg font-medium">Country Overview</h3>
-                <div className="mt-2">
-                  <ul className="space-y-1">
-                    <li className="flex justify-between">
-                      <span>Economic Indicators</span>
-                      <span className="text-muted-foreground">
-                        {reportData.countryOverview?.economicIndicators ? "Completed" : "Not completed"}
-                      </span>
-                    </li>
-                    <li className="flex justify-between">
-                      <span>Country Perception</span>
-                      <span className="text-muted-foreground">
-                        {reportData.countryOverview?.countryPerception ? "Completed" : "Not completed"}
-                      </span>
-                    </li>
-                    <li className="flex justify-between">
-                      <span>Trade Sectors</span>
-                      <span className="text-muted-foreground">
-                        {reportData.countryOverview?.tradeSectors ? "Completed" : "Not completed"}
-                      </span>
-                    </li>
-                    <li className="flex justify-between">
-                      <span>Trade with USA</span>
-                      <span className="text-muted-foreground">
-                        {reportData.countryOverview?.tradeWithUSA ? "Completed" : "Not completed"}
-                      </span>
-                    </li>
-                  </ul>
-                </div>
+                {selectedCountries.length > 0 ? (
+                  <div className="mt-2 space-y-4">
+                    {selectedCountries.map((countryCode: string) => {
+                      const hasOverview = hasCountryOverviews(countryCode);
+                      const overview = getCountryOverview(countryCode);
+                      
+                      return (
+                        <div key={countryCode} className="border rounded-md p-3">
+                          <div className="flex items-center gap-2 font-medium mb-2">
+                            <img
+                              src={`https://flagcdn.com/${countryCode.toLowerCase()}.svg`}
+                              alt={getCountryName(countryCode)}
+                              className="h-4 w-6 rounded-sm object-cover"
+                            />
+                            {getCountryName(countryCode)}
+                          </div>
+                          {hasOverview ? (
+                            <ul className="space-y-1">
+                              <li className="flex justify-between">
+                                <span>Economic Indicators</span>
+                                <span className="text-muted-foreground">
+                                  {overview.economicIndicators ? "Completed" : "Not completed"}
+                                </span>
+                              </li>
+                              <li className="flex justify-between">
+                                <span>Country Perception</span>
+                                <span className="text-muted-foreground">
+                                  {overview.countryPerception ? "Completed" : "Not completed"}
+                                </span>
+                              </li>
+                              <li className="flex justify-between">
+                                <span>Trade Sectors</span>
+                                <span className="text-muted-foreground">
+                                  {overview.tradeSectors ? "Completed" : "Not completed"}
+                                </span>
+                              </li>
+                              <li className="flex justify-between">
+                                <span>Trade with USA</span>
+                                <span className="text-muted-foreground">
+                                  {overview.tradeWithUSA ? "Completed" : "Not completed"}
+                                </span>
+                              </li>
+                            </ul>
+                          ) : (
+                            <p className="text-muted-foreground">No overview data</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground mt-2">No country selected</p>
+                )}
               </div>
 
-              <div>
-                <h3 className="text-lg font-medium">News & Events</h3>
-                <div className="mt-2">
-                  <span className="text-muted-foreground">{reportData.newsEvents ? "Completed" : "Not completed"}</span>
-                </div>
-              </div>
+              {reportData.reportType === "meeting" && (
+                <>
+                  <div>
+                    <h3 className="text-lg font-medium">News & Events</h3>
+                    <div className="mt-2">
+                      <span className="text-muted-foreground">{reportData.newsEvents ? "Completed" : "Not completed"}</span>
+                    </div>
+                  </div>
 
-              <div>
-                <h3 className="text-lg font-medium">Action Items</h3>
-                <div className="mt-2">
-                  {reportData.actionItems && reportData.actionItems.length > 0 ? (
-                    <ul className="space-y-1">
-                      {reportData.actionItems.map((item: any) => (
-                        <li key={item.id} className="flex justify-between">
-                          <span className="truncate max-w-[200px]">{item.title}</span>
-                          {getStatusBadge(item.status)}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-muted-foreground">No action items added</p>
-                  )}
-                </div>
-              </div>
+                  <div>
+                    <h3 className="text-lg font-medium">Action Items</h3>
+                    <div className="mt-2">
+                      {reportData.actionItems && reportData.actionItems.length > 0 ? (
+                        <ul className="space-y-1">
+                          {reportData.actionItems.map((item: any) => (
+                            <li key={item.id} className="flex justify-between">
+                              <span className="truncate max-w-[200px]">{item.title}</span>
+                              {getStatusBadge(item.status)}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-muted-foreground">No action items added</p>
+                      )}
+                    </div>
+                  </div>
 
-              <div>
-                <h3 className="text-lg font-medium">Talking Points</h3>
-                <div className="mt-2">
-                  {reportData.talkingPoints && reportData.talkingPoints.length > 0 ? (
-                    <ul className="space-y-1">
-                      {reportData.talkingPoints.map((tp: any) => (
-                        <li key={tp.id} className="flex justify-between">
-                          <span className="truncate max-w-[200px]">{tp.title}</span>
-                          <Badge variant="outline">{tp.category}</Badge>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-muted-foreground">No talking points added</p>
-                  )}
-                </div>
-              </div>
+                  <div>
+                    <h3 className="text-lg font-medium">Talking Points</h3>
+                    <div className="mt-2">
+                      {reportData.talkingPoints && reportData.talkingPoints.length > 0 ? (
+                        <ul className="space-y-1">
+                          {reportData.talkingPoints.map((point: any) => (
+                            <li key={point.id}>{point.title}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-muted-foreground">No talking points added</p>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </CardContent>
@@ -232,11 +336,7 @@ export default function SummaryContent() {
         <Button variant="outline" onClick={handlePrevious}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Previous
         </Button>
-        <Button
-          onClick={handleGenerateReport}
-          disabled={isGeneratingReport || !reportData.selectedCountry}
-          className="bg-green-600 hover:bg-green-700"
-        >
+        <Button onClick={handleGenerateReport} disabled={isGeneratingReport} className="bg-green-600 hover:bg-green-700">
           {isGeneratingReport ? "Generating..." : "Generate Final Report"} <Check className="ml-2 h-4 w-4" />
         </Button>
       </div>

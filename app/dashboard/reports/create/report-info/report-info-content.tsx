@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CalendarIcon, ArrowRight, ArrowLeft } from "lucide-react"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Checkbox } from "@/components/ui/checkbox"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { mockCountries } from "@/lib/mock-data"
@@ -21,6 +22,7 @@ export default function ReportInfoContent() {
   const [meetingName, setMeetingName] = useState("")
   const [meetingDate, setMeetingDate] = useState<Date | undefined>(undefined)
   const [selectedCountry, setSelectedCountry] = useState("")
+  const [selectedCountries, setSelectedCountries] = useState<string[]>([])
 
   // Load existing data if available
   useEffect(() => {
@@ -31,6 +33,7 @@ export default function ReportInfoContent() {
       setMeetingName(parsedData.meetingName || "")
       setMeetingDate(parsedData.meetingDate ? new Date(parsedData.meetingDate) : undefined)
       setSelectedCountry(parsedData.selectedCountry || "")
+      setSelectedCountries(parsedData.selectedCountries || [])
     }
   }, [])
 
@@ -42,13 +45,18 @@ export default function ReportInfoContent() {
       reportType,
       meetingName,
       meetingDate: meetingDate ? meetingDate.toISOString() : null,
-      selectedCountry,
-      step: "profiles",
+      selectedCountry: reportType === "meeting" ? selectedCountry : selectedCountries[0], // For backward compatibility
+      selectedCountries: reportType === "informative" ? selectedCountries : [selectedCountry],
+      step: reportType === "meeting" ? "profiles" : "country-overview",
     }
     localStorage.setItem("reportData", JSON.stringify(updatedData))
 
-    // Navigate to next step
+    // Navigate to next step based on report type
+    if (reportType === "meeting") {
     router.push("/dashboard/reports/create/profiles")
+    } else {
+      router.push("/dashboard/reports/create/country-overview")
+    }
   }
 
   const handleCancel = () => {
@@ -72,9 +80,18 @@ export default function ReportInfoContent() {
     )
   }
 
+  // Toggle country selection for multi-select mode
+  const toggleCountrySelection = (countryCode: string, checked: boolean) => {
+    if (checked) {
+      setSelectedCountries([...selectedCountries, countryCode])
+    } else {
+      setSelectedCountries(selectedCountries.filter(code => code !== countryCode))
+    }
+  }
+
   return (
     <div className="space-y-6">
-      <ReportProgressIndicator currentStep="report-info" />
+      <ReportProgressIndicator currentStep="report-info" reportType={reportType as "meeting" | "informative"} />
 
       <Card>
         <CardContent className="pt-6">
@@ -129,6 +146,8 @@ export default function ReportInfoContent() {
               </div>
             )}
 
+            {reportType === "meeting" ? (
+              // Single country selection for meeting reports
             <div>
               <Label htmlFor="country">Select Country</Label>
               <Select value={selectedCountry} onValueChange={setSelectedCountry}>
@@ -146,6 +165,34 @@ export default function ReportInfoContent() {
                 </SelectContent>
               </Select>
             </div>
+            ) : (
+              // Multiple countries selection for informative reports
+              <div>
+                <Label>Select Countries</Label>
+                <p className="text-sm text-muted-foreground mb-2 mt-1">
+                  You can select multiple countries for informative reports
+                </p>
+                <div className="space-y-3 mt-2 max-h-60 overflow-y-auto border rounded-md p-3">
+                  {mockCountries.map((country) => (
+                    <div key={country.code} className="flex items-center space-x-2">
+                      <Checkbox 
+                        id={`country-${country.code}`} 
+                        checked={selectedCountries.includes(country.code)}
+                        onCheckedChange={(checked) => toggleCountrySelection(country.code, checked === true)}
+                      />
+                      <Label htmlFor={`country-${country.code}`} className="flex items-center gap-2 cursor-pointer">
+                        <img
+                          src={`https://flagcdn.com/${country.code.toLowerCase()}.svg`}
+                          alt={`${country.name} flag`}
+                          className="h-4 w-6 rounded-sm object-cover"
+                        />
+                        {country.name}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -154,7 +201,10 @@ export default function ReportInfoContent() {
         <Button variant="outline" onClick={handleCancel}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Cancel
         </Button>
-        <Button onClick={handleNext} disabled={!selectedCountry}>
+        <Button 
+          onClick={handleNext} 
+          disabled={reportType === "meeting" ? !selectedCountry : selectedCountries.length === 0}
+        >
           Next <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
