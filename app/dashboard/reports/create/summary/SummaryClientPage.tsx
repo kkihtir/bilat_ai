@@ -124,6 +124,10 @@ export default function SummaryContent() {
   return (
     <div className="space-y-6">
       <ReportProgressIndicator currentStep="summary" reportType={reportData.reportType} />
+      
+      <p className="text-gray-600">
+        Step {reportData.reportType === "meeting" ? "8/8" : "3/3"}: Review and finalize your report
+      </p>
 
       <Card>
         <CardHeader>
